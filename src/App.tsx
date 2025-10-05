@@ -1,10 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Layout } from './components/layout/Layout';
+import { Layout } from './components/Layout';
+import { LeadFinder } from './pages/LeadFinder';
+import { Sessions } from './pages/Sessions';
+import { Status } from './pages/Status';
 import { Dashboard } from './pages/Dashboard';
-import { LeadSearch } from './pages/LeadSearch';
-import { SDRWorkflow } from './pages/SDRWorkflow';
-import { EmailManagement } from './pages/EmailManagement';
-import { AgentStatus } from './pages/AgentStatus';
 
 function App() {
   return (
@@ -12,10 +11,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
-          <Route path="leads" element={<LeadSearch />} />
-          <Route path="workflow" element={<SDRWorkflow />} />
-          <Route path="email" element={<EmailManagement />} />
-          <Route path="status" element={<AgentStatus />} />
+          <Route path="leads" element={<LeadFinder />} />
+          <Route path="sessions" element={<Sessions />} />
+          <Route path="status" element={<Status />} />
         </Route>
       </Routes>
     </BrowserRouter>

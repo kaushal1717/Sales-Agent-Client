@@ -1,35 +1,31 @@
-import { useEffect, useState } from "react";
-import { apiService } from "../services/api";
-import type { AgentStatusResponse } from "../types";
-import {
-  Activity,
-  Mail,
-  Phone,
-  FileSearch,
-  Brain,
-  AlertCircle,
-} from "lucide-react";
+import { useState, useEffect } from 'react';
+import { apiService } from '../services/api';
+import type { AgentStatus, Session } from '../types';
+import { Database, Users, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 export function Dashboard() {
-  const [agentStatus, setAgentStatus] = useState<AgentStatusResponse | null>(
-    null
-  );
+  const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchAgentStatus();
+    loadData();
   }, []);
 
-  const fetchAgentStatus = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const data = await apiService.getAgentStatus();
-      setAgentStatus(data);
       setError(null);
+      const [agentData, sessionsData] = await Promise.all([
+        apiService.getAgentStatus(),
+        apiService.getSessions()
+      ]);
+      setAgentStatus(agentData);
+      setSessions(sessionsData);
     } catch (err: any) {
-      setError(err.message || "Failed to fetch agent status");
-      console.error("Error fetching agent status:", err);
+      console.error('Failed to load dashboard data:', err);
+      setError('Unable to connect to the backend service. Please ensure the server is running.');
     } finally {
       setLoading(false);
     }
@@ -37,312 +33,177 @@ export function Dashboard() {
 
   const stats = [
     {
-      title: "Total Agents",
-      value: agentStatus ? Object.keys(agentStatus.agents).length : 0,
-      icon: Brain,
-      color: "text-primary-600",
-      bgColor: "bg-primary-100",
+      title: 'Total Sessions',
+      value: sessions.length,
+      icon: Database,
+      color: 'text-blue-600',
     },
     {
-      title: "Email Agent",
-      value: agentStatus?.agents.email_sender.status || "Unknown",
-      icon: Mail,
-      color: "text-success-600",
-      bgColor: "bg-success-100",
+      title: 'Active Agents',
+      value: agentStatus ? Object.values(agentStatus.agents).filter(a => a.status === 'available').length : 0,
+      icon: Users,
+      color: 'text-green-600',
     },
     {
-      title: "Calling Agent",
-      value: agentStatus?.agents.calling.status || "Unknown",
-      icon: Phone,
-      color: "text-warning-600",
-      bgColor: "bg-warning-100",
+      title: 'Total Leads',
+      value: sessions.reduce((sum, s) => sum + s.leads_count, 0),
+      icon: Database,
+      color: 'text-purple-600',
     },
     {
-      title: "Research Agent",
-      value: agentStatus?.agents.research.status || "Unknown",
-      icon: FileSearch,
-      color: "text-error-600",
-      bgColor: "bg-error-100",
+      title: 'Success Rate',
+      value: sessions.length > 0 ? `${Math.round((sessions.filter(s => s.status === 'completed').length / sessions.length) * 100)}%` : '0%',
+      icon: CheckCircle,
+      color: 'text-orange-600',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="space-y-8 p-6">
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-            Sales Agent Dashboard
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="text-center mb-12">
+        <div className="floating">
+          <h1 className="text-4xl font-bold text-gray-100 mb-4 bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
+            Dashboard
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Welcome to your AI-powered sales automation system. Monitor agents,
-            track performance, and manage your sales pipeline.
-          </p>
         </div>
+        <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+          Monitor your AI-powered sales automation workflow with real-time insights and analytics
+        </p>
+      </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-gradient-to-r from-red-50 to-pink-50 border-l-4 border-red-400 rounded-lg p-4 shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-6 w-6 text-red-500" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-red-800">
-                  Connection Error
-                </h3>
-                <p className="text-sm text-red-700 mt-1">{error}</p>
-              </div>
+      {/* Error Message */}
+      {error && (
+        <div className="card p-4 border-red-700 bg-red-900">
+          <div className="flex items-center space-x-2 text-red-300">
+            <XCircle className="h-5 w-5" />
+            <div>
+              <p className="font-semibold">Connection Error</p>
+              <p className="text-sm">{error}</p>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => {
-            const Icon = stat.icon;
-            return (
-              <div
-                key={index}
-                className="group relative bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-white/20"
-              >
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <div key={index} className="card gradient-border p-6 group hover:scale-105 transition-all duration-300">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-400 group-hover:text-gray-300 transition-colors">{stat.title}</p>
+                  <p className="text-3xl font-bold text-gray-100 mt-2 group-hover:text-white transition-colors">
+                    {loading ? (
+                      <div className="h-8 w-20 bg-gradient-to-r from-gray-700 to-gray-600 rounded animate-pulse"></div>
+                    ) : (
+                      stat.value
+                    )}
+                  </p>
+                </div>
+                <div className={`p-4 rounded-xl ${stat.color} bg-opacity-20 group-hover:bg-opacity-30 transition-all duration-300`}>
+                  <Icon className={`h-8 w-8 ${stat.color} group-hover:scale-110 transition-transform duration-300`} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Agent Status */}
+      <div className="card gradient-border p-8">
+        <h2 className="text-2xl font-semibold text-gray-100 mb-6 flex items-center">
+          <div className="w-2 h-2 bg-blue-400 rounded-full mr-3 pulse-glow"></div>
+          Agent Status
+        </h2>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="relative">
+              <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+              <div className="absolute inset-0 h-12 w-12 animate-ping rounded-full bg-blue-600 opacity-20"></div>
+            </div>
+          </div>
+        ) : agentStatus ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(agentStatus.agents).map(([key, agent]) => (
+              <div key={key} className="glass-effect p-4 rounded-xl border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 group">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-3 h-3 rounded-full ${
+                    agent.status === 'available' ? 'bg-green-500 pulse-glow' : 'bg-gray-500'
+                  }`} />
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-100 capitalize group-hover:text-white transition-colors">
+                      {key.replace(/_/g, ' ')}
+                    </p>
+                    {agent.description && (
+                      <p className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">{agent.description}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 flex justify-end">
+                  <span className={`badge ${
+                    agent.status === 'available' ? 'badge-success' : 'badge-info'
+                  }`}>
+                    {agent.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-400 text-center py-8">No agent data available</p>
+        )}
+      </div>
+
+      {/* Recent Sessions */}
+      <div className="card gradient-border p-8">
+        <h2 className="text-2xl font-semibold text-gray-100 mb-6 flex items-center">
+          <div className="w-2 h-2 bg-green-400 rounded-full mr-3 pulse-glow"></div>
+          Recent Sessions
+        </h2>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="relative">
+              <Loader2 className="h-12 w-12 animate-spin text-green-600" />
+              <div className="absolute inset-0 h-12 w-12 animate-ping rounded-full bg-green-600 opacity-20"></div>
+            </div>
+          </div>
+        ) : sessions.length > 0 ? (
+          <div className="space-y-4">
+            {sessions.slice(0, 5).map((session) => (
+              <div key={session.session_id} className="glass-effect p-4 rounded-xl border border-gray-700/50 hover:border-green-500/50 transition-all duration-300 group">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                      {stat.title}
-                    </p>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">
-                      {loading ? (
-                        <div className="h-8 w-20 bg-gradient-to-r from-gray-200 to-gray-300 rounded animate-pulse"></div>
-                      ) : (
-                        stat.value
-                      )}
-                    </p>
-                  </div>
-                  <div
-                    className={`${stat.bgColor} ${stat.color} p-4 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300`}
-                  >
-                    <Icon className="h-7 w-7" />
-                  </div>
-                </div>
-                {/* Subtle gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-2xl pointer-events-none"></div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Agent Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Agents Status */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-lg">
-                  <Activity className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold">Agent Status</h3>
-                  <p className="text-blue-100 text-sm">
-                    Real-time agent monitoring
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="p-6">
-              {loading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
-                        <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
-                      </div>
-                      <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : agentStatus ? (
-                <div className="space-y-4">
-                  {Object.entries(agentStatus.agents).map(([key, agent]) => (
-                    <div
-                      key={key}
-                      className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`h-3 w-3 rounded-full ${
-                            agent.status === "available"
-                              ? "bg-green-500"
-                              : "bg-gray-400"
-                          }`}
-                        ></div>
-                        <div>
-                          <p className="font-medium text-gray-900 capitalize">
-                            {key.replace(/_/g, " ")}
-                          </p>
-                          {agent.description && (
-                            <p className="text-sm text-gray-500">
-                              {agent.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          agent.status === "available"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {agent.status}
+                    <p className="font-medium text-gray-100 group-hover:text-white transition-colors">{session.session_id}</p>
+                    <div className="flex items-center space-x-6 text-sm text-gray-400 mt-2 group-hover:text-gray-300 transition-colors">
+                      <span className="flex items-center space-x-1">
+                        <Users className="h-4 w-4" />
+                        <span>{session.leads_count} leads</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <Clock className="h-4 w-4" />
+                        <span>{Math.round(session.workflow_duration)}s</span>
                       </span>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="text-gray-400 mb-2">
-                    <Activity className="h-12 w-12 mx-auto" />
                   </div>
-                  <p className="text-gray-500">No agent data available</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Environment Configuration */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
-            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-6 text-white">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-lg">
-                  <Brain className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold">Environment Config</h3>
-                  <p className="text-emerald-100 text-sm">
-                    System configuration status
-                  </p>
+                  <span className={`badge ${
+                    session.status === 'completed' ? 'badge-success' : 'badge-warning'
+                  }`}>
+                    {session.status === 'completed' ? (
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                    ) : (
+                      <XCircle className="h-3 w-3 mr-1" />
+                    )}
+                    {session.status}
+                  </span>
                 </div>
               </div>
-            </div>
-            <div className="p-6">
-              {loading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <div className="h-4 w-32 bg-gray-200 rounded animate-pulse"></div>
-                      <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : agentStatus ? (
-                <div className="space-y-3">
-                  {Object.entries(agentStatus.environment).map(
-                    ([key, value]) => (
-                      <div
-                        key={key}
-                        className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <p className="text-gray-700 capitalize font-medium">
-                          {key.replace(/_/g, " ")}
-                        </p>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            value
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {value ? "✓ Configured" : "✗ Not Configured"}
-                        </span>
-                      </div>
-                    )
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="text-gray-400 mb-2">
-                    <Brain className="h-12 w-12 mx-auto" />
-                  </div>
-                  <p className="text-gray-500">
-                    No configuration data available
-                  </p>
-                </div>
-              )}
-            </div>
+            ))}
           </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
-          <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-6 text-white">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 rounded-lg">
-                <FileSearch className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold">Quick Actions</h3>
-                <p className="text-purple-100 text-sm">
-                  Get started with common tasks
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <a
-                href="/leads"
-                className="group relative bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-blue-200/50"
-              >
-                <div className="flex flex-col items-center text-center">
-                  <div className="p-4 bg-blue-500 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300 mb-4">
-                    <FileSearch className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="font-bold text-gray-900 mb-2">Search Leads</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    Find new business opportunities and potential customers
-                  </p>
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </a>
-
-              <a
-                href="/workflow"
-                className="group relative bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-green-200/50"
-              >
-                <div className="flex flex-col items-center text-center">
-                  <div className="p-4 bg-green-500 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300 mb-4">
-                    <Activity className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="font-bold text-gray-900 mb-2">
-                    Run SDR Workflow
-                  </h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    Execute complete sales development workflow automation
-                  </p>
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </a>
-
-              <a
-                href="/email"
-                className="group relative bg-gradient-to-br from-purple-50 to-pink-100 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-purple-200/50"
-              >
-                <div className="flex flex-col items-center text-center">
-                  <div className="p-4 bg-purple-500 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300 mb-4">
-                    <Mail className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="font-bold text-gray-900 mb-2">Send Email</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    Send personalized outreach emails to your leads
-                  </p>
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </a>
-            </div>
-          </div>
-        </div>
+        ) : (
+          <p className="text-gray-400 text-center py-8">No sessions found</p>
+        )}
       </div>
     </div>
   );

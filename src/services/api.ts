@@ -7,9 +7,12 @@ import type {
   EmailResponse,
   EmailAgentRequest,
   BusinessData,
-  WorkflowExecutionResponse,
-  WorkflowAsyncResponse,
-  AgentStatusResponse,
+  SDRWorkflowResponse,
+  MainAgentWorkflowRequest,
+  MainAgentWorkflowResponse,
+  AgentStatus,
+  Session,
+  BusinessLeadDocument,
 } from '../types';
 
 class APIService {
@@ -52,48 +55,124 @@ class APIService {
 
   // Health Check
   async healthCheck(): Promise<HealthResponse> {
-    const response = await this.client.get<HealthResponse>('/health');
-    return response.data;
+    try {
+      const response = await this.client.get<HealthResponse>('/health');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(`Health check failed: ${error.message}`);
+    }
   }
 
-  // Lead Management
-  async searchLeads(request: LeadSearchRequest): Promise<LeadSearchResponse> {
-    const response = await this.client.post<LeadSearchResponse>('/api/v1/leads/search', request);
-    return response.data;
+  // Lead Finder Agent (matching README)
+  async runLeadFinderWorkflow(request: LeadSearchRequest): Promise<LeadSearchResponse> {
+    try {
+      const response = await this.client.post<LeadSearchResponse>('/api/v1/leads/finder', request);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(`Lead finder workflow failed: ${error.response?.data?.message || error.message}`);
+    }
   }
 
-  // Email Operations
+  // Email Operations (kept for potential future use)
   async sendEmail(request: EmailRequest): Promise<EmailResponse> {
-    const response = await this.client.post<EmailResponse>('/api/v1/email/send', request);
-    return response.data;
+    try {
+      const response = await this.client.post<EmailResponse>('/api/v1/email/send', request);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(`Email send failed: ${error.response?.data?.message || error.message}`);
+    }
   }
 
   async sendEmailWithAgent(request: EmailAgentRequest): Promise<any> {
-    const response = await this.client.post('/api/v1/email/send-agent', request);
-    return response.data;
+    try {
+      const response = await this.client.post('/api/v1/email/send-agent', request);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(`Email agent failed: ${error.response?.data?.message || error.message}`);
+    }
   }
 
-  // Workflow Operations
-  async executeWorkflow(businessData: BusinessData): Promise<WorkflowExecutionResponse> {
-    const response = await this.client.post<WorkflowExecutionResponse>(
-      '/api/v1/workflow/execute',
-      businessData
-    );
-    return response.data;
+  // Main Agent Orchestrator (kept for potential future use)
+  async runMainAgentWorkflow(request: MainAgentWorkflowRequest): Promise<MainAgentWorkflowResponse> {
+    try {
+      const response = await this.client.post<MainAgentWorkflowResponse>(
+        '/api/v1/main-agent/workflow',
+        request
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(`Main agent workflow failed: ${error.response?.data?.message || error.message}`);
+    }
   }
 
-  async executeWorkflowAsync(businessData: BusinessData): Promise<WorkflowAsyncResponse> {
-    const response = await this.client.post<WorkflowAsyncResponse>(
-      '/api/v1/workflow/execute-async',
-      businessData
-    );
-    return response.data;
+  // SDR Agent (kept for potential future use)
+  async executeSDRWorkflow(businessData: BusinessData): Promise<SDRWorkflowResponse> {
+    try {
+      const response = await this.client.post<SDRWorkflowResponse>(
+        '/api/v1/sdr/workflow',
+        businessData
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(`SDR workflow failed: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
+  // Session Management (matching README)
+  async getSessions(): Promise<Session[]> {
+    try {
+      const response = await this.client.get<Session[]>('/api/v1/sessions');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(`Failed to fetch sessions: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
+  async getSession(sessionId: string): Promise<Session> {
+    try {
+      const response = await this.client.get<Session>(`/api/v1/sessions/${sessionId}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(`Failed to fetch session: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
+  async getSessionLeads(sessionId: string): Promise<BusinessLeadDocument[]> {
+    try {
+      const response = await this.client.get<BusinessLeadDocument[]>(`/api/v1/sessions/${sessionId}/leads`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(`Failed to fetch session leads: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
+  // Database Operations (matching README schema)
+  async getBusinessLeads(): Promise<BusinessLeadDocument[]> {
+    try {
+      const response = await this.client.get<BusinessLeadDocument[]>('/api/v1/database/business-leads');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(`Failed to fetch business leads: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
+  async getBusinessLeadById(id: string): Promise<BusinessLeadDocument> {
+    try {
+      const response = await this.client.get<BusinessLeadDocument>(`/api/v1/database/business-leads/${id}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(`Failed to fetch business lead: ${error.response?.data?.message || error.message}`);
+    }
   }
 
   // Agent Status
-  async getAgentStatus(): Promise<AgentStatusResponse> {
-    const response = await this.client.get<AgentStatusResponse>('/api/v1/agents/status');
-    return response.data;
+  async getAgentStatus(): Promise<AgentStatus> {
+    try {
+      const response = await this.client.get<AgentStatus>('/api/v1/agents/status');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(`Failed to fetch agent status: ${error.response?.data?.message || error.message}`);
+    }
   }
 }
 

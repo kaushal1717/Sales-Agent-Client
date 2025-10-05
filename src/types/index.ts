@@ -1,3 +1,5 @@
+// Sales Agent System Types - Based on README specifications
+
 // API Response Types
 export interface APIResponse<T = any> {
   success: boolean;
@@ -7,40 +9,59 @@ export interface APIResponse<T = any> {
   timestamp?: string;
 }
 
-// Business Data Types
+// Business Data Types (matching README schema)
 export interface BusinessData {
   name: string;
   email: string;
   phone?: string;
   address?: string;
-  industry?: string;
-  business_type?: string;
   website?: string;
-  additional_info?: Record<string, any>;
-}
-
-export interface BusinessLead extends BusinessData {
-  id?: string;
-  confidence_score?: number;
+  category?: string;
+  rating?: number;
   source?: string;
+  session_id?: string;
   created_at?: string;
   updated_at?: string;
 }
 
-// Lead Search Types
-export interface LeadSearchRequest {
-  location: string;
+export interface BusinessLead extends BusinessData {
+  _id?: string;
+  confidence_score?: number;
+  industry?: string;
   business_type?: string;
-  radius?: number;
-  limit?: number;
+  additional_info?: Record<string, any>;
+}
+
+export interface Session {
+  _id?: string;
+  session_id: string;
+  created_at: string;
+  leads_count: number;
+  insert_count: number;
+  upsert_count: number;
+  status: string;
+  workflow_duration: number;
+}
+
+export interface LeadSearchRequest {
+  city: string;
+  business_type?: string;
+  max_results?: number;
+  search_radius?: number;
+  session_id?: string;
 }
 
 export interface LeadSearchResponse {
   success: boolean;
-  message: string;
+  leads_found: number;
+  session_id: string;
+  search_summary: {
+    city: string;
+    business_type: string;
+    search_radius: number;
+    total_found: number;
+  };
   leads: BusinessLead[];
-  total_found: number;
-  search_params: LeadSearchRequest;
 }
 
 // Email Types
@@ -64,54 +85,102 @@ export interface EmailResponse {
   subject: string;
 }
 
-// Workflow Types
-export type WorkflowStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-
-export interface WorkflowResults {
-  research?: string;
-  proposal?: string;
-  call?: any;
-  classification?: string;
-  email?: any;
+export interface MainAgentWorkflowRequest {
+  city: string;
+  business_type: string;
+  max_results: number;
+  search_radius: number;
 }
 
-export interface WorkflowExecutionResponse {
+export interface MainAgentWorkflowResponse {
+  session_id: string;
   success: boolean;
-  message: string;
-  business_data: BusinessData;
-  results: WorkflowResults;
-  workflow_status: WorkflowStatus;
-}
-
-export interface WorkflowAsyncResponse {
-  success: boolean;
-  message: string;
-  task_id: string;
+  leads_count: number;
+  sdr_results: SDRResult[];
+  workflow_duration: number;
   status: string;
 }
 
-// Agent Status Types
-export interface AgentInfo {
-  status: string;
-  type?: string;
-  description?: string;
-  sender_email?: string;
+export interface SDRResult {
+  success: boolean;
+  business_name: string;
+  research_completed: boolean;
+  proposal_generated: boolean;
+  phone_call_made: boolean;
+  email_sent: boolean;
+  conversation_classification: string;
+  business_data: BusinessLead;
 }
 
-export interface AgentStatusResponse {
+export interface SDRWorkflowRequest {
+  business_data: BusinessLead;
+}
+
+export interface SDRWorkflowResponse {
+  success: boolean;
+  business_name: string;
+  research_completed: boolean;
+  proposal_generated: boolean;
+  phone_call_made: boolean;
+  email_sent: boolean;
+  conversation_classification: string;
+  results: {
+    research?: string;
+    proposal?: string;
+    call?: {
+      made: boolean;
+      duration?: number;
+      outcome?: string;
+    };
+    email?: {
+      sent: boolean;
+      subject?: string;
+      delivered?: boolean;
+    };
+  };
+}
+
+export interface AgentStatus {
   success: boolean;
   agents: {
-    email_sender: AgentInfo;
-    sdr_main: AgentInfo;
-    research: AgentInfo;
-    proposal: AgentInfo;
-    calling: AgentInfo;
+    email_sender: { status: string; description?: string };
+    sdr_main: { status: string; description?: string };
+    research: { status: string; description?: string };
+    proposal: { status: string; description?: string };
+    calling: { status: string; description?: string };
   };
   environment: {
     gmail_configured: boolean;
     cerebras_configured: boolean;
     mongodb_configured: boolean;
   };
+}
+
+// Database Schema Types (matching README)
+export interface BusinessLeadDocument {
+  _id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  website?: string;
+  category: string;
+  rating?: number;
+  source: string;
+  session_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SessionDocument {
+  _id: string;
+  session_id: string;
+  created_at: string;
+  leads_count: number;
+  insert_count: number;
+  upsert_count: number;
+  status: string;
+  workflow_duration: number;
 }
 
 // Health Check Types

@@ -10,6 +10,7 @@ import type {
   SDRWorkflowResponse,
   MainAgentWorkflowRequest,
   MainAgentWorkflowResponse,
+  MainWorkflowStreamRequest,
   AgentStatus,
   Session,
   BusinessLeadDocument,
@@ -20,7 +21,7 @@ class APIService {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    this.baseURL = import.meta.env.VITE_API_URL || '';
     this.client = axios.create({
       baseURL: this.baseURL,
       headers: {
@@ -63,15 +64,32 @@ class APIService {
     }
   }
 
-  // Lead Finder Agent (matching README)
-  async runLeadFinderWorkflow(request: LeadSearchRequest): Promise<LeadSearchResponse> {
-    try {
-      const response = await this.client.post<LeadSearchResponse>('/api/v1/leads/finder', request);
-      return response.data;
-    } catch (error: any) {
-      throw new Error(`Lead finder workflow failed: ${error.response?.data?.message || error.message}`);
-    }
-  }
+          // Lead Finder Agent (matching README)
+          async runLeadFinderWorkflow(request: LeadSearchRequest): Promise<LeadSearchResponse> {
+            try {
+              const response = await this.client.post<LeadSearchResponse>('/api/v1/leads/finder', request);
+              return response.data;
+            } catch (error: any) {
+              throw new Error(`Lead finder workflow failed: ${error.response?.data?.message || error.message}`);
+            }
+          }
+
+          // Main Workflow Stream (new endpoint from API docs)
+          async startMainWorkflowStream(request: MainWorkflowStreamRequest): Promise<EventSource> {
+            try {
+              // First, make a POST request to start the workflow
+              const response = await this.client.post('/api/v1/workflow/main-stream', request);
+              
+              // Get session ID from response
+              const sessionId = response.data.session_id || response.data.id || Date.now().toString();
+              
+              // Create EventSource for streaming updates
+              const streamUrl = `${this.baseURL}/api/v1/workflow/main-stream/stream/${sessionId}`;
+              return new EventSource(streamUrl);
+            } catch (error: any) {
+              throw new Error(`Main workflow stream failed: ${error.response?.data?.message || error.message}`);
+            }
+          }
 
   // Email Operations (kept for potential future use)
   async sendEmail(request: EmailRequest): Promise<EmailResponse> {

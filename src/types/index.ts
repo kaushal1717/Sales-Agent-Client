@@ -92,6 +92,14 @@ export interface MainAgentWorkflowRequest {
   search_radius: number;
 }
 
+export interface MainWorkflowStreamRequest {
+  city: string;
+  business_type: string;
+  max_results: number;
+  search_radius: number;
+  enable_sdr: boolean;
+}
+
 export interface MainAgentWorkflowResponse {
   session_id: string;
   success: boolean;

@@ -48,7 +48,7 @@ export function Dashboard() {
       title: 'Total Leads',
       value: sessions.reduce((sum, s) => sum + s.leads_count, 0),
       icon: Activity,
-      bgColor: 'bg-brutal-pink',
+      bgColor: 'bg-brutal-beige',
     },
     {
       title: 'Success Rate',
@@ -161,7 +161,7 @@ export function Dashboard() {
       </div>
 
       {/* Recent Sessions */}
-      <div className="card p-8 bg-brutal-pink slide-up">
+      <div className="card p-8 bg-brutal-beige slide-up">
         <h2 className="text-3xl font-black text-black mb-6 flex items-center uppercase">
           <Database className="h-8 w-8 mr-3" />
           Recent Sessions

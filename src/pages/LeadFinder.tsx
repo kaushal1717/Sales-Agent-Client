@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { apiService } from '../services/api';
-import type { LeadSearchRequest, LeadSearchResponse, MainWorkflowStreamRequest } from '../types';
+import { useState } from 'react';
 import { Search, MapPin, Building2, Mail, Phone, Globe, Loader2, Database, Users, Clock, Sparkles, CheckCircle, XCircle } from 'lucide-react';
+import { useWorkflowStream } from '../hooks/useWorkflowStream';
+import type { LeadSearchRequest } from '../types';
 
 export function LeadFinder() {
   const [formData, setFormData] = useState<LeadSearchRequest>({
@@ -11,91 +11,34 @@ export function LeadFinder() {
     search_radius: 5000,
   });
 
-  const [results, setResults] = useState<LeadSearchResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [streamingStatus, setStreamingStatus] = useState<string>('');
-  const [streamingProgress, setStreamingProgress] = useState<number>(0);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const {
+    status,
+    progress: streamingProgress,
+    currentStep,
+    sessionId,
+    streamSteps,
+    results: workflowResults,
+    error: workflowError,
+    streamingMessage,
+    startWorkflow,
+    cancelWorkflow,
+  } = useWorkflowStream();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.city) {
-      setError('City is required');
       return;
     }
 
-    setLoading(true);
-    setError(null);
-    setStreamingStatus('Starting workflow...');
-    setStreamingProgress(0);
-
-    try {
-      // Close any existing event source
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-
-      // Prepare the request payload for the streaming API
-      const streamRequest: MainWorkflowStreamRequest = {
-        city: formData.city,
-        business_type: formData.business_type || 'restaurants',
-        max_results: formData.max_results || 3,
-        search_radius: formData.search_radius || 5000,
-        enable_sdr: true,
-      };
-
-      // Start the streaming workflow
-      const eventSource = await apiService.startMainWorkflowStream(streamRequest);
-      eventSourceRef.current = eventSource;
-
-      // Handle streaming events
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('Streaming data:', data);
-          
-          // Update status based on the streaming data
-          if (data.status) {
-            setStreamingStatus(data.status);
-          }
-          
-          if (data.progress !== undefined) {
-            setStreamingProgress(data.progress);
-          }
-          
-          // Handle completion
-          if (data.completed) {
-            setStreamingStatus('Workflow completed successfully!');
-            setStreamingProgress(100);
-            setLoading(false);
-            eventSource.close();
-            
-            // If we have results, set them
-            if (data.results) {
-              setResults(data.results);
-            }
-          }
-        } catch (parseError) {
-          console.error('Error parsing streaming data:', parseError);
-        }
-      };
-
-      eventSource.onerror = (error) => {
-        console.error('EventSource failed:', error);
-        setError('Connection lost. Please try again.');
-        setLoading(false);
-        setStreamingStatus('Connection error');
-        eventSource.close();
-      };
-
-    } catch (err: any) {
-      console.error('Lead finder failed:', err);
-      setError('Failed to start workflow. Please check your connection and try again.');
-      setLoading(false);
-      setStreamingStatus('Failed to start');
-    }
+    // Start the workflow using the hook
+    await startWorkflow({
+      city: formData.city,
+      business_type: formData.business_type,
+      max_results: formData.max_results,
+      search_radius: formData.search_radius,
+      enable_sdr: true,
+    });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,18 +49,8 @@ export function LeadFinder() {
     }));
   };
 
-  // Cleanup function to close event source when component unmounts
-  const cleanup = () => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-  };
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return cleanup;
-  }, []);
+  const loading = status === 'running';
+  const error = workflowError;
 
   return (
     <div className="space-y-8">
@@ -244,28 +177,73 @@ export function LeadFinder() {
 
       {/* Streaming Progress */}
       {loading && (
-        <div className="card gradient-border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-100 flex items-center">
-              <div className="w-2 h-2 bg-blue-400 rounded-full mr-3 pulse-glow"></div>
+        <div className="card p-8 bg-brutal-beige slide-up">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-black text-black uppercase flex items-center">
+              <Loader2 className="h-6 w-6 mr-3 animate-spin" />
               Workflow Progress
             </h3>
-            <span className="text-sm text-gray-400">{streamingProgress}%</span>
+            <span className="text-2xl font-black text-black bg-black text-brutal-yellow px-4 py-2 border-4 border-black">{streamingProgress}%</span>
           </div>
-          
+
+          {/* Session ID */}
+          {sessionId && (
+            <div className="bg-white border-4 border-black p-4 mb-6 shadow-brutal">
+              <p className="text-xs font-black text-black uppercase tracking-wide mb-1">Session ID</p>
+              <p className="text-sm font-bold text-gray-700 break-all">{sessionId}</p>
+            </div>
+          )}
+
           {/* Progress Bar */}
-          <div className="w-full bg-gray-700 rounded-full h-2 mb-4">
-            <div 
-              className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500 ease-out"
+          <div className="w-full bg-white border-4 border-black h-8 mb-6 shadow-brutal">
+            <div
+              className="bg-brutal-green h-full border-r-4 border-black transition-all duration-500 ease-out flex items-center justify-end pr-2"
               style={{ width: `${streamingProgress}%` }}
-            ></div>
+            >
+              {streamingProgress > 10 && (
+                <span className="text-xs font-black text-black">{streamingProgress}%</span>
+              )}
+            </div>
           </div>
-          
-          {/* Status Message */}
-          <div className="flex items-center space-x-2 text-gray-300">
-            <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
-            <span className="text-sm">{streamingStatus}</span>
+
+          {/* Current Status */}
+          <div className="bg-white border-4 border-black p-4 mb-6 shadow-brutal">
+            <div className="flex items-center space-x-3">
+              <Loader2 className="h-5 w-5 animate-spin text-black flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs font-black text-black uppercase tracking-wide">Current Step</p>
+                <p className="text-sm font-bold text-gray-700 mt-1">{currentStep ? currentStep.replace(/_/g, ' ') : 'Initializing...'}</p>
+                <p className="text-xs font-bold text-gray-600 mt-1">{streamingMessage}</p>
+              </div>
+            </div>
           </div>
+
+          {/* Step History */}
+          {streamSteps.length > 0 && (
+            <div className="bg-white border-4 border-black p-6 shadow-brutal">
+              <h4 className="text-lg font-black text-black uppercase mb-4">Workflow Steps</h4>
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {streamSteps.map((step, index) => (
+                  <div key={index} className="flex items-start space-x-3 pb-3 border-b-2 border-gray-200 last:border-0">
+                    <div className="flex-shrink-0 mt-1">
+                      {step.status === 'completed' ? (
+                        <CheckCircle className="h-5 w-5 text-brutal-green" />
+                      ) : step.status === 'running' ? (
+                        <Loader2 className="h-5 w-5 animate-spin text-black" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-brutal-red" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-black text-black uppercase">{step.step.replace(/_/g, ' ')}</p>
+                      <p className="text-xs font-bold text-gray-700 mt-1">{step.message}</p>
+                      <p className="text-xs font-semibold text-gray-500 mt-1">{new Date(step.timestamp).toLocaleTimeString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -278,66 +256,36 @@ export function LeadFinder() {
         </div>
       )}
 
-      {/* Session Info */}
-      {results && (
-        <div className="card p-8 bg-brutal-pink slide-up">
-          <h2 className="text-3xl font-black text-black mb-6 flex items-center uppercase">
-            <Database className="h-8 w-8 mr-3" />
-            Session Information
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white border-4 border-black p-4 shadow-brutal">
-              <div className="flex items-start space-x-3">
-                <Database className="h-6 w-6 text-black mt-1" />
-                <div>
-                  <p className="text-xs font-black text-black uppercase tracking-wide">Session ID</p>
-                  <p className="text-sm font-bold text-gray-700 mt-1 break-all">{results.session_id}</p>
-                </div>
-              </div>
+      {/* Workflow Completion Success */}
+      {status === 'completed' && workflowResults && (
+        <div className="card p-8 bg-brutal-green slide-up">
+          <div className="flex items-center justify-center space-x-4">
+            <CheckCircle className="h-12 w-12 text-white" />
+            <div className="text-center">
+              <h2 className="text-4xl font-black text-white uppercase">
+                Workflow Completed Successfully!
+              </h2>
+              <p className="text-lg font-bold text-white mt-2">
+                Your leads have been processed and saved to the database
+              </p>
             </div>
-            <div className="bg-white border-4 border-black p-4 shadow-brutal">
-              <div className="flex items-start space-x-3">
-                <MapPin className="h-6 w-6 text-black mt-1" />
-                <div>
-                  <p className="text-xs font-black text-black uppercase tracking-wide">City</p>
-                  <p className="text-sm font-bold text-gray-700 mt-1">{results.search_summary.city}</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white border-4 border-black p-4 shadow-brutal">
-              <div className="flex items-start space-x-3">
-                <Users className="h-6 w-6 text-black mt-1" />
-                <div>
-                  <p className="text-xs font-black text-black uppercase tracking-wide">Leads Found</p>
-                  <p className="text-sm font-bold text-gray-700 mt-1">{results.search_summary.total_found}</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white border-4 border-black p-4 shadow-brutal">
-              <div className="flex items-start space-x-3">
-                <Clock className="h-6 w-6 text-black mt-1" />
-                <div>
-                  <p className="text-xs font-black text-black uppercase tracking-wide">Search Radius</p>
-                  <p className="text-sm font-bold text-gray-700 mt-1">{results.search_summary.search_radius}m</p>
-                </div>
-              </div>
-            </div>
+            <CheckCircle className="h-12 w-12 text-white" />
           </div>
         </div>
       )}
 
-      {/* Results */}
-      {results && (
+      {/* Legacy Results - Remove this if not needed */}
+      {false && (
         <div className="card p-8 bg-brutal-blue slide-up">
           <h2 className="text-3xl font-black text-black mb-4 flex items-center uppercase">
             <Sparkles className="h-8 w-8 mr-3" />
             Lead Discovery Results
           </h2>
           <p className="text-black font-bold text-xl mb-8">
-            Found <span className="bg-black text-brutal-yellow px-3 py-1 border-4 border-black">{results.leads.length}</span> lead{results.leads.length !== 1 ? 's' : ''} with valid email addresses
+            Found <span className="bg-black text-brutal-yellow px-3 py-1 border-4 border-black">0</span> leads with valid email addresses
           </p>
 
-          {results.leads.length > 0 ? (
+          {false ? (
             <div className="space-y-6">
               {results.leads.map((lead, index) => (
                 <div key={index} className="bg-white border-4 border-black p-6 shadow-brutal hover:shadow-brutal-lg transition-all">

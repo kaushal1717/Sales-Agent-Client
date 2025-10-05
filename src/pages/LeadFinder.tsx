@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { apiService } from '../services/api';
-import type { LeadSearchRequest, LeadSearchResponse } from '../types';
-import { Search, MapPin, Building2, Mail, Phone, Globe, Loader2, Database, Users, Clock } from 'lucide-react';
+import type { LeadSearchRequest, LeadSearchResponse, MainWorkflowStreamRequest } from '../types';
+import { Search, MapPin, Building2, Mail, Phone, Globe, Loader2, Database, Users, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 export function LeadFinder() {
   const [formData, setFormData] = useState<LeadSearchRequest>({
@@ -14,6 +14,9 @@ export function LeadFinder() {
   const [results, setResults] = useState<LeadSearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [streamingStatus, setStreamingStatus] = useState<string>('');
+  const [streamingProgress, setStreamingProgress] = useState<number>(0);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,15 +28,73 @@ export function LeadFinder() {
 
     setLoading(true);
     setError(null);
+    setStreamingStatus('Starting workflow...');
+    setStreamingProgress(0);
 
     try {
-      const result = await apiService.runLeadFinderWorkflow(formData);
-      setResults(result);
+      // Close any existing event source
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+
+      // Prepare the request payload for the streaming API
+      const streamRequest: MainWorkflowStreamRequest = {
+        city: formData.city,
+        business_type: formData.business_type || 'restaurants',
+        max_results: formData.max_results || 3,
+        search_radius: formData.search_radius || 5000,
+        enable_sdr: true,
+      };
+
+      // Start the streaming workflow
+      const eventSource = await apiService.startMainWorkflowStream(streamRequest);
+      eventSourceRef.current = eventSource;
+
+      // Handle streaming events
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('Streaming data:', data);
+          
+          // Update status based on the streaming data
+          if (data.status) {
+            setStreamingStatus(data.status);
+          }
+          
+          if (data.progress !== undefined) {
+            setStreamingProgress(data.progress);
+          }
+          
+          // Handle completion
+          if (data.completed) {
+            setStreamingStatus('Workflow completed successfully!');
+            setStreamingProgress(100);
+            setLoading(false);
+            eventSource.close();
+            
+            // If we have results, set them
+            if (data.results) {
+              setResults(data.results);
+            }
+          }
+        } catch (parseError) {
+          console.error('Error parsing streaming data:', parseError);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error('EventSource failed:', error);
+        setError('Connection lost. Please try again.');
+        setLoading(false);
+        setStreamingStatus('Connection error');
+        eventSource.close();
+      };
+
     } catch (err: any) {
       console.error('Lead finder failed:', err);
-      setError('Failed to search for leads. Please check your connection and try again.');
-    } finally {
+      setError('Failed to start workflow. Please check your connection and try again.');
       setLoading(false);
+      setStreamingStatus('Failed to start');
     }
   };
 
@@ -45,6 +106,19 @@ export function LeadFinder() {
     }));
   };
 
+  // Cleanup function to close event source when component unmounts
+  const cleanup = () => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return cleanup;
+  }, []);
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -55,8 +129,8 @@ export function LeadFinder() {
           </h1>
         </div>
         <p className="text-lg text-gray-400 max-w-3xl mx-auto">
-          Start the complete sales automation workflow by searching for business leads. 
-          The system will automatically trigger SDR agents to research, propose, call, and email.
+          Start the complete AI-powered sales automation workflow with real-time streaming updates. 
+          The system will automatically search for leads, trigger SDR agents to research, propose, call, and email.
         </p>
       </div>
 
@@ -67,8 +141,8 @@ export function LeadFinder() {
           Search Parameters
         </h2>
         <p className="text-gray-400 mb-6 text-sm bg-gray-800/50 p-4 rounded-lg border border-gray-700/50">
-          Once you submit this form, the Lead Finder will automatically trigger the SDR Agent 
-          to research businesses, generate proposals, make calls, and send outreach emails.
+          Once you submit this form, the system will start a real-time streaming workflow that automatically 
+          searches for business leads and triggers the complete SDR automation pipeline with live progress updates.
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -149,18 +223,45 @@ export function LeadFinder() {
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Searching Leads...</span>
+                  <span>Running Workflow...</span>
                 </>
               ) : (
                 <>
                   <Search className="h-4 w-4" />
-                  <span>Search Leads</span>
+                  <span>Start Workflow</span>
                 </>
               )}
             </button>
           </div>
         </form>
       </div>
+
+      {/* Streaming Progress */}
+      {loading && (
+        <div className="card gradient-border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-100 flex items-center">
+              <div className="w-2 h-2 bg-blue-400 rounded-full mr-3 pulse-glow"></div>
+              Workflow Progress
+            </h3>
+            <span className="text-sm text-gray-400">{streamingProgress}%</span>
+          </div>
+          
+          {/* Progress Bar */}
+          <div className="w-full bg-gray-700 rounded-full h-2 mb-4">
+            <div 
+              className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${streamingProgress}%` }}
+            ></div>
+          </div>
+          
+          {/* Status Message */}
+          <div className="flex items-center space-x-2 text-gray-300">
+            <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+            <span className="text-sm">{streamingStatus}</span>
+          </div>
+        </div>
+      )}
 
       {/* Error Message */}
       {error && (

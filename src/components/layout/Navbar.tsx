@@ -1,13 +1,13 @@
-import { Link, useLocation } from 'react-router-dom';
-import { Home, Search, Workflow, Mail, Activity } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { Link, useLocation } from "react-router-dom";
+import { Home, Search, Workflow, Mail, Activity } from "lucide-react";
+import { cn } from "../../lib/utils";
 
 const navItems = [
-  { name: 'Dashboard', path: '/', icon: Home },
-  { name: 'Lead Search', path: '/leads', icon: Search },
-  { name: 'SDR Workflow', path: '/workflow', icon: Workflow },
-  { name: 'Email', path: '/email', icon: Mail },
-  { name: 'Agent Status', path: '/status', icon: Activity },
+  { name: "Dashboard", path: "/", icon: Home },
+  { name: "Lead Search", path: "/leads", icon: Search },
+  { name: "SDR Workflow", path: "/workflow", icon: Workflow },
+  { name: "Email", path: "/email", icon: Mail },
+  { name: "Agent Status", path: "/status", icon: Activity },
 ];
 
 export function Navbar() {
@@ -20,7 +20,7 @@ export function Navbar() {
           <div className="flex">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
-              <h1 className="text-2xl font-bold text-blue-600">
+              <h1 className="text-2xl font-bold text-primary-600">
                 Sales Agent AI
               </h1>
             </div>
@@ -38,7 +38,7 @@ export function Navbar() {
                     className={cn(
                       "inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-colors",
                       isActive
-                        ? "border-blue-500 text-gray-900"
+                        ? "border-primary-500 text-gray-900"
                         : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                     )}
                   >
@@ -52,8 +52,8 @@ export function Navbar() {
 
           {/* Right side - could add user menu, notifications, etc */}
           <div className="flex items-center">
-            <div className="flex items-center space-x-2">
-              <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+            <div className="status-indicator">
+              <div className="status-dot online"></div>
               <span className="text-sm text-gray-600">API Connected</span>
             </div>
           </div>
@@ -74,7 +74,7 @@ export function Navbar() {
                 className={cn(
                   "flex items-center pl-3 pr-4 py-2 border-l-4 text-base font-medium",
                   isActive
-                    ? "bg-blue-50 border-blue-500 text-blue-700"
+                    ? "bg-primary-50 border-primary-500 text-primary-700"
                     : "border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"
                 )}
               >

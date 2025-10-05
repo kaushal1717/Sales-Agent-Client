@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { apiService } from '../services/api';
 import type { LeadSearchRequest, LeadSearchResponse } from '../types';
-import { Search, MapPin, Building2, Mail, Phone, Globe, Loader2, Database, Users, Clock } from 'lucide-react';
+import { Search, MapPin, Building2, Mail, Phone, Globe, Loader2, Database, Users, Clock, Sparkles } from 'lucide-react';
 
 export function LeadFinder() {
   const [formData, setFormData] = useState<LeadSearchRequest>({
@@ -17,7 +17,7 @@ export function LeadFinder() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.city) {
       setError('City is required');
       return;
@@ -29,7 +29,7 @@ export function LeadFinder() {
     try {
       const result = await apiService.runLeadFinderWorkflow(formData);
       setResults(result);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Lead finder failed:', err);
       setError('Failed to search for leads. Please check your connection and try again.');
     } finally {
@@ -48,67 +48,73 @@ export function LeadFinder() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="text-center mb-12">
-        <div className="floating">
-          <h1 className="text-4xl font-bold text-gray-100 mb-4 bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+      <div className="text-center mb-12 pt-8 bounce-in">
+        <div className="inline-flex items-center justify-center mb-6">
+          <Sparkles className="h-12 w-12 text-brutal-pink mr-4" />
+          <h1 className="text-6xl md:text-7xl font-black text-black uppercase tracking-tight">
             Lead Finder
           </h1>
+          <Sparkles className="h-12 w-12 text-brutal-yellow ml-4" />
         </div>
-        <p className="text-lg text-gray-400 max-w-3xl mx-auto">
-          Start the complete sales automation workflow by searching for business leads. 
+        <p className="text-xl md:text-2xl font-bold text-black max-w-3xl mx-auto leading-relaxed">
+          Start the complete sales automation workflow by searching for business leads.
+        </p>
+        <p className="text-lg font-semibold text-gray-700 max-w-3xl mx-auto mt-2">
           The system will automatically trigger SDR agents to research, propose, call, and email.
         </p>
       </div>
 
       {/* Search Form */}
-      <div className="card gradient-border p-8">
-        <h2 className="text-2xl font-semibold text-gray-100 mb-4 flex items-center">
-          <div className="w-2 h-2 bg-blue-400 rounded-full mr-3 pulse-glow"></div>
+      <div className="card p-8 bg-brutal-yellow slide-up">
+        <h2 className="text-3xl font-black text-black mb-4 flex items-center uppercase">
+          <Search className="h-8 w-8 mr-3" />
           Search Parameters
         </h2>
-        <p className="text-gray-400 mb-6 text-sm bg-gray-800/50 p-4 rounded-lg border border-gray-700/50">
-          Once you submit this form, the Lead Finder will automatically trigger the SDR Agent 
-          to research businesses, generate proposals, make calls, and send outreach emails.
-        </p>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white border-4 border-black p-4 mb-6 shadow-brutal">
+          <p className="text-black font-bold text-sm">
+            ⚡ Once you submit this form, the Lead Finder will automatically trigger the SDR Agent
+            to research businesses, generate proposals, make calls, and send outreach emails.
+          </p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label className="block text-sm font-black text-black mb-2 uppercase tracking-wide">
                 City *
               </label>
-              <div className="relative flex items-center">
-                <MapPin className="absolute left-3 h-4 w-4 text-white z-10" />
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-black z-10" />
                 <input
                   type="text"
                   name="city"
                   placeholder="e.g., New York, San Francisco"
                   value={formData.city}
                   onChange={handleInputChange}
-                  className="input pl-10"
+                  className="input pl-12"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label className="block text-sm font-black text-black mb-2 uppercase tracking-wide">
                 Business Type
               </label>
-              <div className="relative flex items-center">
-                <Building2 className="absolute left-3 h-4 w-4 text-white z-10" />
+              <div className="relative">
+                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-black z-10" />
                 <input
                   type="text"
                   name="business_type"
                   placeholder="e.g., restaurants, cafes, IT services"
                   value={formData.business_type}
                   onChange={handleInputChange}
-                  className="input pl-10"
+                  className="input pl-12"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label className="block text-sm font-black text-black mb-2 uppercase tracking-wide">
                 Search Radius (meters)
               </label>
               <input
@@ -124,7 +130,7 @@ export function LeadFinder() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label className="block text-sm font-black text-black mb-2 uppercase tracking-wide">
                 Max Results
               </label>
               <input
@@ -144,16 +150,16 @@ export function LeadFinder() {
             <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary flex items-center space-x-2 px-6 py-3"
+              className="btn btn-primary flex items-center space-x-3 px-10 py-4 text-lg"
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Searching Leads...</span>
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span>Searching...</span>
                 </>
               ) : (
                 <>
-                  <Search className="h-4 w-4" />
+                  <Search className="h-6 w-6" />
                   <span>Search Leads</span>
                 </>
               )}
@@ -164,47 +170,55 @@ export function LeadFinder() {
 
       {/* Error Message */}
       {error && (
-        <div className="card p-4 border-red-200 bg-red-50">
-          <div className="flex items-center space-x-2 text-red-800">
-            <span>{error}</span>
+        <div className="card p-6 bg-brutal-red slide-up">
+          <div className="flex items-center space-x-3 text-white font-bold text-lg">
+            <span>❌ {error}</span>
           </div>
         </div>
       )}
 
       {/* Session Info */}
       {results && (
-        <div className="card p-6 bg-blue-50 border-blue-200">
-          <h2 className="text-xl font-semibold text-slate-900 mb-4 flex items-center">
-            <Database className="h-5 w-5 mr-2 text-blue-600" />
+        <div className="card p-8 bg-brutal-pink slide-up">
+          <h2 className="text-3xl font-black text-black mb-6 flex items-center uppercase">
+            <Database className="h-8 w-8 mr-3" />
             Session Information
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="flex items-center space-x-2">
-              <Database className="h-4 w-4 text-slate-500" />
-              <div>
-                <p className="text-sm font-medium text-slate-900">Session ID</p>
-                <p className="text-xs text-slate-500">{results.session_id}</p>
+            <div className="bg-white border-4 border-black p-4 shadow-brutal">
+              <div className="flex items-start space-x-3">
+                <Database className="h-6 w-6 text-black mt-1" />
+                <div>
+                  <p className="text-xs font-black text-black uppercase tracking-wide">Session ID</p>
+                  <p className="text-sm font-bold text-gray-700 mt-1 break-all">{results.session_id}</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <MapPin className="h-4 w-4 text-slate-500" />
-              <div>
-                <p className="text-sm font-medium text-slate-900">City</p>
-                <p className="text-xs text-slate-500">{results.search_summary.city}</p>
+            <div className="bg-white border-4 border-black p-4 shadow-brutal">
+              <div className="flex items-start space-x-3">
+                <MapPin className="h-6 w-6 text-black mt-1" />
+                <div>
+                  <p className="text-xs font-black text-black uppercase tracking-wide">City</p>
+                  <p className="text-sm font-bold text-gray-700 mt-1">{results.search_summary.city}</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Users className="h-4 w-4 text-slate-500" />
-              <div>
-                <p className="text-sm font-medium text-slate-900">Leads Found</p>
-                <p className="text-xs text-slate-500">{results.search_summary.total_found}</p>
+            <div className="bg-white border-4 border-black p-4 shadow-brutal">
+              <div className="flex items-start space-x-3">
+                <Users className="h-6 w-6 text-black mt-1" />
+                <div>
+                  <p className="text-xs font-black text-black uppercase tracking-wide">Leads Found</p>
+                  <p className="text-sm font-bold text-gray-700 mt-1">{results.search_summary.total_found}</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Clock className="h-4 w-4 text-slate-500" />
-              <div>
-                <p className="text-sm font-medium text-slate-900">Search Radius</p>
-                <p className="text-xs text-slate-500">{results.search_summary.search_radius}m</p>
+            <div className="bg-white border-4 border-black p-4 shadow-brutal">
+              <div className="flex items-start space-x-3">
+                <Clock className="h-6 w-6 text-black mt-1" />
+                <div>
+                  <p className="text-xs font-black text-black uppercase tracking-wide">Search Radius</p>
+                  <p className="text-sm font-bold text-gray-700 mt-1">{results.search_summary.search_radius}m</p>
+                </div>
               </div>
             </div>
           </div>
@@ -213,54 +227,57 @@ export function LeadFinder() {
 
       {/* Results */}
       {results && (
-        <div className="card p-6">
-          <h2 className="text-xl font-semibold text-slate-900 mb-4">Lead Discovery Results</h2>
-          <p className="text-slate-600 mb-6">
-            Found {results.leads.length} lead{results.leads.length !== 1 ? 's' : ''} with valid email addresses
+        <div className="card p-8 bg-brutal-blue slide-up">
+          <h2 className="text-3xl font-black text-black mb-4 flex items-center uppercase">
+            <Sparkles className="h-8 w-8 mr-3" />
+            Lead Discovery Results
+          </h2>
+          <p className="text-black font-bold text-xl mb-8">
+            Found <span className="bg-black text-brutal-yellow px-3 py-1 border-4 border-black">{results.leads.length}</span> lead{results.leads.length !== 1 ? 's' : ''} with valid email addresses
           </p>
-          
+
           {results.leads.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {results.leads.map((lead, index) => (
-                <div key={index} className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 transition-colors">
-                  <div className="flex items-start justify-between">
+                <div key={index} className="bg-white border-4 border-black p-6 shadow-brutal hover:shadow-brutal-lg transition-all">
+                  <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-slate-900">{lead.name}</h3>
-                      
-                      <div className="mt-2 space-y-1">
+                      <h3 className="text-2xl font-black text-black mb-4 uppercase">{lead.name}</h3>
+
+                      <div className="space-y-3">
                         {lead.email && (
-                          <div className="flex items-center text-sm text-slate-600">
-                            <Mail className="h-4 w-4 mr-2 text-slate-400" />
-                            <a href={`mailto:${lead.email}`} className="hover:text-blue-600">
+                          <div className="flex items-center text-base font-bold text-black">
+                            <Mail className="h-5 w-5 mr-3 flex-shrink-0" />
+                            <a href={`mailto:${lead.email}`} className="hover:text-brutal-pink transition-colors underline">
                               {lead.email}
                             </a>
                           </div>
                         )}
-                        
+
                         {lead.phone && (
-                          <div className="flex items-center text-sm text-slate-600">
-                            <Phone className="h-4 w-4 mr-2 text-slate-400" />
-                            <a href={`tel:${lead.phone}`} className="hover:text-blue-600">
+                          <div className="flex items-center text-base font-bold text-black">
+                            <Phone className="h-5 w-5 mr-3 flex-shrink-0" />
+                            <a href={`tel:${lead.phone}`} className="hover:text-brutal-pink transition-colors underline">
                               {lead.phone}
                             </a>
                           </div>
                         )}
-                        
+
                         {lead.address && (
-                          <div className="flex items-center text-sm text-slate-600">
-                            <MapPin className="h-4 w-4 mr-2 text-slate-400" />
+                          <div className="flex items-center text-base font-bold text-black">
+                            <MapPin className="h-5 w-5 mr-3 flex-shrink-0" />
                             <span>{lead.address}</span>
                           </div>
                         )}
-                        
+
                         {lead.website && (
-                          <div className="flex items-center text-sm text-slate-600">
-                            <Globe className="h-4 w-4 mr-2 text-slate-400" />
+                          <div className="flex items-center text-base font-bold text-black">
+                            <Globe className="h-5 w-5 mr-3 flex-shrink-0" />
                             <a
                               href={lead.website}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="hover:text-blue-600"
+                              className="hover:text-brutal-pink transition-colors underline break-all"
                             >
                               {lead.website}
                             </a>
@@ -268,12 +285,12 @@ export function LeadFinder() {
                         )}
                       </div>
                     </div>
-                    
-                    <div className="flex flex-col items-end space-y-2">
-                      <span className="badge badge-info">{lead.category}</span>
-                      <span className="badge badge-info text-xs">{lead.source}</span>
+
+                    <div className="flex flex-col items-end space-y-3">
+                      <span className="badge badge-info px-4 py-2">{lead.category}</span>
+                      <span className="badge badge-success px-3 py-1">{lead.source}</span>
                       {lead.rating && (
-                        <span className="badge badge-info text-xs">⭐ {lead.rating}</span>
+                        <span className="badge badge-warning px-3 py-1">⭐ {lead.rating}</span>
                       )}
                     </div>
                   </div>
@@ -281,10 +298,10 @@ export function LeadFinder() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-slate-500">
-              <Search className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-              <p>No leads found with valid email addresses.</p>
-              <p className="text-sm mt-2">Try adjusting your search criteria or expanding the search radius.</p>
+            <div className="text-center py-16 bg-white border-4 border-black shadow-brutal">
+              <Search className="h-20 w-20 mx-auto mb-6 text-black" />
+              <p className="text-2xl font-black text-black uppercase mb-2">No leads found</p>
+              <p className="text-lg font-bold text-gray-700">Try adjusting your search criteria or expanding the search radius.</p>
             </div>
           )}
         </div>
